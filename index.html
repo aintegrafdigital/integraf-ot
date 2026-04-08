@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orden de Trabajo — InteGraf Digital</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+  :root {
+    --bg: #F4F2EE;
+    --surface: #FFFFFF;
+    --surface2: #F9F8F6;
+    --border: #DDD9D0;
+    --border2: #C8C3B8;
+    --text: #1A1814;
+    --text2: #6B6760;
+    --text3: #9B9890;
+    --accent: #1A4FA0;
+    --accent-light: #E8EEF8;
+    --accent-text: #0D3270;
+    --danger: #B83232;
+    --danger-light: #FBF0F0;
+    --success: #1A6E3C;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 380px;
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .login-logo .l-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .login-logo .l-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+  .login-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+  .login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .login-field label { font-size: 12px; font-weight: 500; color: var(--text2); }
+  .login-field input {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+  .login-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,79,160,0.1);
+  }
+  .btn-login {
+    width: 100%; margin-top: 8px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    padding: 11px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-login:hover { background: var(--accent-text); }
+  .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error {
+    font-size: 13px; color: var(--danger);
+    background: var(--danger-light);
+    border: 1px solid #F5C5C5;
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    margin-top: 10px;
+    display: none;
+  }
+  .login-error.show { display: block; }
+
+  /* ── APP (oculta hasta login) ── */
+  #app-screen { display: none; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .user-badge {
+    font-size: 12px; color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .user-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--success);
+  }
+  .header-actions { display: flex; gap: 8px; }
+
+  /* ── LAYOUT ── */
+  .main-layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-icon {
+    width: 28px; height: 28px;
+    background: var(--accent-light);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .card-body { padding: 20px; }
+
+  /* ── FORM FIELDS ── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text2); letter-spacing: 0.02em; }
+  .field input, .field textarea, .field select {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.4;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,79,160,0.1);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .gap-section { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0;
+  }
+  .section-divider span {
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── ITEMS ── */
+  .items-list { display: flex; flex-direction: column; gap: 10px; }
+  .item-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    position: relative;
+  }
+  .item-card .item-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 10px;
+  }
+  .item-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .item-terminacion-row {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .item-terminacion-label {
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .item-terminacion-label::before { content: '✂️'; font-size: 11px; }
+  .btn-remove-item {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 18px; line-height: 1;
+    padding: 2px 6px; border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-remove-item:hover { background: var(--danger-light); color: var(--danger); }
+
+  .btn-add-item {
+    display: flex; align-items: center; gap: 6px;
+    background: none; border: 1px dashed var(--border2);
+    border-radius: var(--radius); padding: 9px 14px;
+    cursor: pointer; color: var(--text2); font-size: 13px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    width: 100%; justify-content: center;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    margin-top: 4px;
+  }
+  .btn-add-item:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    transition: background 0.15s, border-color 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: var(--surface2); border-color: var(--border2); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-text); border-color: var(--accent-text); }
+  .btn-danger { background: var(--danger-light); color: var(--danger); border-color: #F5C5C5; }
+  .btn-lg { padding: 11px 22px; font-size: 14px; width: 100%; justify-content: center; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .ot-number-display {
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    text-align: center;
+  }
+  .ot-number-display .ot-label { font-size: 11px; opacity: 0.7; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .ot-number-display .ot-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 36px; font-weight: 500; letter-spacing: 2px;
+  }
+  .ot-number-display .ot-date { font-size: 12px; opacity: 0.65; margin-top: 6px; }
+
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--text2);
+  }
+  .check-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border2); flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .check-dot.ok { background: var(--success); }
+
+  /* ── HISTORIAL ── */
+  .history-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .history-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    gap: 6px;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item .h-num { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); }
+  .history-item .h-empresa { font-size: 12px; color: var(--text); }
+  .history-item .h-date { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .history-item .h-del {
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 15px; padding: 2px 4px;
+    border-radius: 4px; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+  }
+  .history-item .h-del:hover { color: var(--danger); background: var(--danger-light); }
+  .empty-history { font-size: 12px; color: var(--text3); text-align: center; padding: 16px; }
+
+  /* ── MODAL VISTA PREVIA ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 200;
+    align-items: flex-start; justify-content: center;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    width: 100%; max-width: 720px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    background: #F5F5F3;
+    border-bottom: 1px solid #DDD;
+    gap: 8px;
+  }
+  .modal-toolbar-title { font-size: 14px; font-weight: 600; color: #333; font-family: 'IBM Plex Sans', sans-serif; }
+  .modal-toolbar-actions { display: flex; gap: 8px; }
+  .btn-modal { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+  .btn-modal-close { background: #fff; border: 1px solid #CCC; color: #333; }
+  .btn-modal-print { background: #1A4FA0; border: none; color: #fff; }
+  .btn-modal-print:hover { background: #0D3270; }
+
+  /* ── DOCUMENTO IMPRIMIBLE ── */
+  .doc-preview {
+    padding: 2rem 2.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    color: #000;
+    line-height: 1.5;
+    background: #fff;
+  }
+  .doc-logo { text-align: center; margin-bottom: 8px; }
+  .doc-logo .logo-name { font-size: 22px; font-weight: 800; font-family: Arial Black, Arial, sans-serif; }
+  .doc-logo .logo-sub { font-size: 10px; color: #666; }
+  .doc-meta-row { display: flex; justify-content: space-between; font-size: 11px; color: #555; margin-bottom: 8px; }
+  .doc-title-block { text-align: center; margin-bottom: 14px; }
+  .doc-title-block .doc-title { font-size: 17px; font-weight: 700; }
+  .doc-title-block .doc-num { font-size: 26px; font-weight: 800; }
+  .doc-title-block .doc-date { font-size: 11px; color: #555; margin-top: 3px; }
+  .doc-empresa-row { display: flex; gap: 40px; margin-bottom: 12px; font-size: 13px; }
+  .doc-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1px solid #999; }
+  .doc-table th { background: #EBEBEB; padding: 6px 10px; font-size: 12px; font-weight: 700; border-bottom: 1px solid #999; text-align: center; }
+  .doc-table td { padding: 7px 10px; vertical-align: top; }
+  .col-qty { border-right: 1px solid #CCC; width: 80px; text-align: center; font-weight: 700; }
+  .doc-table tbody tr:not(:last-child) td { border-bottom: 1px solid #E5E5E5; }
+  .doc-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; }
+  .doc-firma { text-align: center; font-size: 11px; color: #555; margin-top: 24px; }
+  .doc-estados { border: 1px solid #999; border-collapse: collapse; font-size: 11px; }
+  .doc-estados td { padding: 4px 12px; border-bottom: 1px solid #CCC; }
+  .doc-estados td:first-child { border-right: 1px solid #CCC; }
+  .doc-estados tr:last-child td { border-bottom: none; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1A1814; color: #fff;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 800px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .sidebar { order: -1; }
+    .ot-number-display .ot-val { font-size: 28px; }
+  }
+  @media (max-width: 500px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    header { padding: 0 1rem; }
+    .main-layout { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════ PANTALLA DE LOGIN ════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="l-name">InteGraf Digital</div>
+      <div class="l-sub">Sistema de Órdenes de Trabajo</div>
+    </div>
+    <div class="login-title">Iniciar sesión</div>
+    <div class="login-field">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="nombre@integrafdigital.cl" autocomplete="email" />
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn-login" id="btn-login" onclick="hacerLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ════════ PANTALLA PRINCIPAL ════════ -->
+<div id="app-screen">
+  <header>
+    <div class="logo">InteGraf<span> Digital</span> &nbsp;·&nbsp; Órdenes de Trabajo</div>
+    <div class="header-right">
+      <div class="user-badge">
+        <div class="user-dot"></div>
+        <span id="user-email-label">—</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="limpiarFormulario()">&#10023; Nueva OT</button>
+        <button class="btn btn-primary" onclick="mostrarPrevia()">&#9654; Vista previa</button>
+        <button class="btn btn-danger" onclick="cerrarSesion()" title="Cerrar sesión">&#8594; Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- COLUMNA PRINCIPAL -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Datos generales -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📋</div>
+          <div class="card-title">Datos generales</div>
+        </div>
+        <div class="card-body gap-section">
+          <div class="grid-3">
+            <div class="field">
+              <label>N° de OT</label>
+              <input type="text" id="ot-num" placeholder="42311" oninput="actualizarPanel()" />
+            </div>
+            <div class="field">
+              <label>N° Factura</label>
+              <input type="text" id="ot-factura" placeholder="F-14568" />
+            </div>
+            <div class="field">
+              <label>G. de Despacho</label>
+              <input type="text" id="ot-despacho" placeholder="—" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Empresa / Cliente</label>
+              <input type="text" id="ot-empresa" placeholder="Ej: Rolando Reyes" oninput="actualizarPanel()" />
+            </div>
+            <div class="field">
+              <label>Contacto</label>
+              <input type="text" id="ot-contacto" placeholder="Nombre de contacto" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Fecha de ingreso</label>
+              <input type="date" id="ot-fecha-ingreso" oninput="actualizarPanel()" />
+            </div>
+            <div class="field">
+              <label>Fecha de entrega</label>
+              <input type="date" id="ot-fecha-entrega" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalles de impresión -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🖨️</div>
+          <div class="card-title">Detalles de impresión</div>
+        </div>
+        <div class="card-body">
+          <div class="items-list" id="items-container"></div>
+          <button class="btn-add-item" onclick="agregarItem()">+ Agregar ítem de impresión</button>
+        </div>
+      </div>
+
+      <!-- Observaciones -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📝</div>
+          <div class="card-title">Observaciones internas</div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <textarea id="ot-obs" placeholder="Notas para producción (no aparecen en el documento impreso)..." style="min-height:60px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-lg" style="background:var(--surface2);" onclick="guardarOT()">💾 Guardar OT</button>
+        <button class="btn btn-primary btn-lg" onclick="mostrarPrevia()">▶ Vista previa e impresión</button>
+      </div>
+
+    </div><!-- /col principal -->
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <div class="ot-number-display">
+        <div class="ot-label">Orden de trabajo</div>
+        <div class="ot-val" id="panel-num">—</div>
+        <div class="ot-date" id="panel-fecha">—</div>
+      </div>
+
+      <!-- Checklist -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">✅</div>
+          <div class="card-title">Completitud del formulario</div>
+        </div>
+        <div class="card-body">
+          <div class="checklist">
+            <div class="check-item"><div class="check-dot" id="chk-num"></div> N° de OT</div>
+            <div class="check-item"><div class="check-dot" id="chk-empresa"></div> Empresa / Cliente</div>
+            <div class="check-item"><div class="check-dot" id="chk-ingreso"></div> Fecha de ingreso</div>
+            <div class="check-item"><div class="check-dot" id="chk-entrega"></div> Fecha de entrega</div>
+            <div class="check-item"><div class="check-dot" id="chk-items"></div> Ítems de impresión</div>
+            <div class="check-item"><div class="check-dot" id="chk-terminacion"></div> Terminación</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📁</div>
+          <div class="card-title">Historial de OTs</div>
+        </div>
+        <div class="card-body" style="padding:12px;">
+          <div class="history-list" id="history-list">
+            <div class="empty-history">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+  </div><!-- /main-layout -->
+</div><!-- /app-screen -->
+
+<!-- MODAL VISTA PREVIA -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Vista previa — Orden de Trabajo</div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarModal()">← Volver</button>
+        <button class="btn-modal btn-modal-print" onclick="imprimir()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div id="doc-preview-content" class="doc-preview"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════
+const SUPA_URL = 'https://nmbxklxglkdqmeciqyoa.supabase.co';
+const SUPA_KEY = 'sb_publishable_ca7CJmuD-HzVSNOUYAYj-w_Ntwc86HK';
+
+let currentSession = null;
+let itemCount = 0;
+let historial = [];
+
+// Request helper — adjunta token de sesión si existe
+async function supaFetch(method, path, body) {
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Content-Type': 'application/json',
+  };
+  if (currentSession?.access_token) {
+    headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+  }
+  if (method === 'POST') headers['Prefer'] = 'return=representation';
+
+  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+async function hacerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('btn-login');
+
+  errEl.classList.remove('show');
+  if (!email || !pass) { mostrarErrorLogin('Ingresa tu correo y contraseña'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  try {
+    const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Credenciales incorrectas');
+
+    currentSession = data;
+    sessionStorage.setItem('ot_session', JSON.stringify(data));
+    mostrarApp(email);
+  } catch(e) {
+    mostrarErrorLogin(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+function mostrarErrorLogin(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function mostrarApp(email) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('user-email-label').textContent = email || currentSession?.user?.email || '—';
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('ot-fecha-ingreso').value = hoy;
+  agregarItem();
+  actualizarPanel();
+  cargarHistorial();
+  document.addEventListener('input', actualizarChecklist);
+}
+
+async function cerrarSesion() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  // Invalidar token en Supabase
+  try {
+    await fetch(`${SUPA_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${currentSession?.access_token}` }
+    });
+  } catch(e) {}
+  currentSession = null;
+  sessionStorage.removeItem('ot_session');
+  location.reload();
+}
+
+// Recuperar sesión si el usuario ya había entrado en esta pestaña
+(function checkSession() {
+  const saved = sessionStorage.getItem('ot_session');
+  if (saved) {
+    try {
+      currentSession = JSON.parse(saved);
+      const email = currentSession?.user?.email || '';
+      mostrarApp(email);
+    } catch(e) {
+      sessionStorage.removeItem('ot_session');
+    }
+  }
+})();
+
+// Login con Enter
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    hacerLogin();
+  }
+});
+
+// ══════════════════════════════════════════
+// FORMULARIO — ÍTEMS
+// ══════════════════════════════════════════
+function agregarItem() {
+  itemCount++;
+  const container = document.getElementById('items-container');
+  const div = document.createElement('div');
+  div.className = 'item-card';
+  div.dataset.id = itemCount;
+  div.innerHTML = `
+    <div class="item-num">Ítem ${itemCount}</div>
+    <button class="btn-remove-item" onclick="eliminarItem(this)" title="Eliminar ítem">×</button>
+    <div class="item-grid">
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" min="1" placeholder="40" class="item-qty" oninput="actualizarChecklist()" />
+      </div>
+      <div class="field">
+        <label>Descripción de impresión</label>
+        <textarea class="item-desc" placeholder="Ej: Papel sintético laminado mate&#10;Tamaño: 90x70cm" oninput="actualizarChecklist()"></textarea>
+      </div>
+    </div>
+    <div class="item-terminacion-row">
+      <div class="item-terminacion-label">Terminación para este ítem</div>
+      <div class="field">
+        <textarea class="item-term" placeholder="Ej: Doble contacto en esquinas, laminado mate / Troquelado..." style="min-height:60px;" oninput="actualizarChecklist()"></textarea>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  actualizarChecklist();
+}
+
+function eliminarItem(btn) {
+  const items = document.querySelectorAll('.item-card');
+  if (items.length <= 1) { mostrarToast('Debe haber al menos un ítem'); return; }
+  btn.closest('.item-card').remove();
+  actualizarChecklist();
+}
+
+// ══════════════════════════════════════════
+// PANEL LATERAL Y CHECKLIST
+// ══════════════════════════════════════════
+function actualizarPanel() {
+  const num   = document.getElementById('ot-num').value || '—';
+  const fecha = document.getElementById('ot-fecha-ingreso').value;
+  document.getElementById('panel-num').textContent  = num;
+  document.getElementById('panel-fecha').textContent = fecha ? formatFecha(fecha) : '—';
+  actualizarChecklist();
+}
+
+function actualizarChecklist() {
+  const num    = document.getElementById('ot-num')?.value.trim();
+  const empresa = document.getElementById('ot-empresa')?.value.trim();
+  const ingreso = document.getElementById('ot-fecha-ingreso')?.value;
+  const entrega = document.getElementById('ot-fecha-entrega')?.value;
+  const tieneItems = [...document.querySelectorAll('.item-card')].some(c => {
+    return c.querySelector('.item-qty').value && c.querySelector('.item-desc').value.trim();
+  });
+  const tieneTerminacion = [...document.querySelectorAll('.item-card')].some(c => {
+    const t = c.querySelector('.item-term');
+    return t && t.value.trim();
+  });
+  setCheck('chk-num', !!num);
+  setCheck('chk-empresa', !!empresa);
+  setCheck('chk-ingreso', !!ingreso);
+  setCheck('chk-entrega', !!entrega);
+  setCheck('chk-items', tieneItems);
+  setCheck('chk-terminacion', tieneTerminacion);
+}
+
+function setCheck(id, ok) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('ok', ok);
+}
+
+// ══════════════════════════════════════════
+// HISTORIAL — SUPABASE
+// ══════════════════════════════════════════
+async function cargarHistorial() {
+  const container = document.getElementById('history-list');
+  container.innerHTML = '<div class="empty-history">Cargando...</div>';
+  try {
+    historial = await supaFetch('GET', 'ordenes?select=*&order=creada_en.desc&limit=50') || [];
+    renderHistorial();
+  } catch(e) {
+    container.innerHTML = '<div class="empty-history" style="color:var(--danger);">Error al cargar historial</div>';
+    console.error(e);
+  }
+}
+
+function renderHistorial() {
+  const container = document.getElementById('history-list');
+  if (!historial.length) {
+    container.innerHTML = '<div class="empty-history">Aún no hay OTs guardadas</div>';
+    return;
+  }
+  container.innerHTML = historial.map((h, i) => `
+    <div class="history-item">
+      <div onclick="cargarDesdeHistorial(${i})" style="flex:1;min-width:0;">
+        <div class="h-num">OT ${h.num || '—'}</div>
+        <div class="h-empresa" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.empresa || 'Sin empresa'}</div>
+      </div>
+      <div class="h-date">${h.fecha_ingreso ? formatFechaCorta(h.fecha_ingreso) : '—'}</div>
+      <button class="h-del" onclick="eliminarOT('${h.id}', ${i})" title="Eliminar OT">🗑</button>
+    </div>`).join('');
+}
+
+async function guardarOT() {
+  const datos = obtenerDatos();
+  if (!datos.num) { mostrarToast('Ingresa un N° de OT primero'); return; }
+
+  mostrarToast('Guardando...');
+  try {
+    const existentes = await supaFetch('GET', `ordenes?num=eq.${encodeURIComponent(datos.num)}&select=id`) || [];
+
+    if (existentes.length > 0) {
+      await supaFetch('PATCH', `ordenes?id=eq.${existentes[0].id}`, {
+        empresa: datos.empresa, contacto: datos.contacto,
+        factura: datos.factura, despacho: datos.despacho,
+        fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
+        items: datos.items, obs: datos.obs
+      });
+      mostrarToast('OT actualizada en la nube ✓');
+    } else {
+      await supaFetch('POST', 'ordenes', {
+        num: datos.num, empresa: datos.empresa, contacto: datos.contacto,
+        factura: datos.factura, despacho: datos.despacho,
+        fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
+        items: datos.items, obs: datos.obs
+      });
+      mostrarToast('OT guardada en la nube ✓');
+    }
+    await cargarHistorial();
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 60));
+    console.error(e);
+  }
+}
+
+function cargarDesdeHistorial(i) {
+  const h = historial[i];
+  document.getElementById('ot-num').value          = h.num || '';
+  document.getElementById('ot-empresa').value      = h.empresa || '';
+  document.getElementById('ot-contacto').value     = h.contacto || '';
+  document.getElementById('ot-factura').value      = h.factura || '';
+  document.getElementById('ot-despacho').value     = h.despacho || '';
+  document.getElementById('ot-fecha-ingreso').value = h.fecha_ingreso || '';
+  document.getElementById('ot-fecha-entrega').value = h.fecha_entrega || '';
+  document.getElementById('ot-obs').value          = h.obs || '';
+  const container = document.getElementById('items-container');
+  container.innerHTML = '';
+  itemCount = 0;
+  (h.items || []).forEach(it => {
+    agregarItem();
+    const cards = container.querySelectorAll('.item-card');
+    const last  = cards[cards.length - 1];
+    last.querySelector('.item-qty').value  = it.qty || '';
+    last.querySelector('.item-desc').value = it.desc || '';
+    const term = last.querySelector('.item-term');
+    if (term) term.value = it.term || '';
+  });
+  actualizarPanel();
+  mostrarToast(`OT ${h.num} cargada ✓`);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function eliminarOT(id, i) {
+  if (!confirm(`¿Eliminar la OT ${historial[i]?.num}? Esta acción no se puede deshacer.`)) return;
+  try {
+    await supaFetch('DELETE', `ordenes?id=eq.${id}`);
+    historial.splice(i, 1);
+    renderHistorial();
+    mostrarToast('OT eliminada ✓');
+  } catch(e) {
+    mostrarToast('Error al eliminar: ' + e.message.slice(0, 60));
+  }
+}
+
+function limpiarFormulario() {
+  if (!confirm('¿Limpiar el formulario para una nueva OT?')) return;
+  ['ot-num','ot-empresa','ot-contacto','ot-factura','ot-despacho','ot-fecha-entrega','ot-obs'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('ot-fecha-ingreso').value = new Date().toISOString().split('T')[0];
+  document.getElementById('items-container').innerHTML = '';
+  itemCount = 0;
+  agregarItem();
+  actualizarPanel();
+}
+
+// ══════════════════════════════════════════
+// OBTENER DATOS DEL FORMULARIO
+// ══════════════════════════════════════════
+function obtenerDatos() {
+  const items = [...document.querySelectorAll('.item-card')].map(c => ({
+    qty:  c.querySelector('.item-qty').value,
+    desc: c.querySelector('.item-desc').value.trim(),
+    term: c.querySelector('.item-term')?.value.trim() || ''
+  })).filter(it => it.qty || it.desc);
+  return {
+    num:          document.getElementById('ot-num').value.trim(),
+    empresa:      document.getElementById('ot-empresa').value.trim(),
+    contacto:     document.getElementById('ot-contacto').value.trim(),
+    factura:      document.getElementById('ot-factura').value.trim(),
+    despacho:     document.getElementById('ot-despacho').value.trim(),
+    fechaIngreso: document.getElementById('ot-fecha-ingreso').value,
+    fechaEntrega: document.getElementById('ot-fecha-entrega').value,
+    obs:          document.getElementById('ot-obs').value.trim(),
+    items
+  };
+}
+
+// ══════════════════════════════════════════
+// VISTA PREVIA
+// ══════════════════════════════════════════
+function mostrarPrevia() {
+  const d = obtenerDatos();
+  const itemsHTML = d.items.length
+    ? d.items.map((it, idx) => `
+        <tr>
+          <td class="col-qty">${esc(it.qty)}</td>
+          <td style="white-space:pre-wrap;">${esc(it.desc)}</td>
+        </tr>
+        <tr>
+          <td style="background:#F8F8F8;padding:5px 10px;font-size:11px;color:#777;border-right:1px solid #CCC;text-align:center;">✂️</td>
+          <td style="background:#F8F8F8;padding:5px 10px;font-size:11px;color:#444;white-space:pre-wrap;border-top:1px dashed #DDD;">
+            <b style="color:#555;">Terminación ítem ${idx+1}:</b> ${esc(it.term) || '<em style="color:#aaa">Sin terminación indicada</em>'}
+          </td>
+        </tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:#999;padding:14px;">Sin ítems</td></tr>';
+
+  document.getElementById('doc-preview-content').innerHTML = `
+    <div class="doc-logo">
+      <div class="logo-name">InteGraf Digital</div>
+      <div class="logo-sub">Servicios de complementación Gráfica Ltda.</div>
+    </div>
+    <div class="doc-meta-row">
+      <span></span>
+      <span>Factura N°: <b>${esc(d.factura)||'—'}</b> &nbsp;&nbsp; G. de Desp. N°: <b>${esc(d.despacho)||'—'}</b></span>
+    </div>
+    <div class="doc-title-block">
+      <div class="doc-title">Orden de Producción</div>
+      <div class="doc-num">${esc(d.num)||'—'}</div>
+      <div class="doc-date">Fecha Ingreso: ${d.fechaIngreso ? formatFecha(d.fechaIngreso) : '—'}</div>
+    </div>
+    <div class="doc-empresa-row">
+      <span><b>EMPRESA:</b> ${esc(d.empresa)||'—'}</span>
+      <span><b>Contacto:</b> ${esc(d.contacto)||'—'}</span>
+    </div>
+    <table class="doc-table">
+      <thead>
+        <tr><th colspan="2">Detalles de Impresión y Terminación</th></tr>
+        <tr>
+          <th style="width:80px;border-right:1px solid #CCC;">Cantidad</th>
+          <th style="text-align:left;">Descripción</th>
+        </tr>
+      </thead>
+      <tbody>${itemsHTML}</tbody>
+    </table>
+    <div class="doc-footer">
+      <div>
+        <b>Fecha de Entrega:</b> ${d.fechaEntrega ? formatFecha(d.fechaEntrega) : '—'}
+        <div class="doc-firma" style="margin-top:24px;">
+          Milton Guerra V.<br>Jefe Área Comercial<br>www.integrafdigital.cl
+        </div>
+      </div>
+      <table class="doc-estados">
+        <tr><td>Facturación</td><td style="width:60px;"></td></tr>
+        <tr><td>Impresión</td><td></td></tr>
+        <tr><td>Producción</td><td></td></tr>
+      </table>
+    </div>`;
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════
+// IMPRIMIR — descarga + ventana de impresión
+// ══════════════════════════════════════════
+function imprimir() {
+  const d = obtenerDatos();
+  const content = document.getElementById('doc-preview-content').innerHTML;
+  const nombreArchivo = `OT_${d.num||'sin-numero'}_${(d.empresa||'cliente').replace(/\s+/g,'_')}.html`;
+
+  const docHTML = `<!DOCTYPE html><html><head><title>OT ${d.num} — InteGraf Digital</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#000;padding:2cm;}
+    @page{margin:2cm;size:A4;}
+    .doc-logo{text-align:center;margin-bottom:8px;}
+    .doc-logo .logo-name{font-size:22px;font-weight:800;font-family:Arial Black,Arial,sans-serif;}
+    .doc-logo .logo-sub{font-size:10px;color:#666;}
+    .doc-meta-row{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:8px;}
+    .doc-title-block{text-align:center;margin-bottom:14px;}
+    .doc-title-block .doc-title{font-size:17px;font-weight:700;}
+    .doc-title-block .doc-num{font-size:26px;font-weight:800;}
+    .doc-title-block .doc-date{font-size:11px;color:#555;margin-top:3px;}
+    .doc-empresa-row{display:flex;gap:40px;margin-bottom:12px;font-size:13px;}
+    .doc-table{width:100%;border-collapse:collapse;margin-bottom:14px;border:1px solid #999;}
+    .doc-table th{background:#EBEBEB;padding:6px 10px;font-size:12px;font-weight:700;border-bottom:1px solid #999;text-align:center;}
+    .doc-table td{padding:7px 10px;vertical-align:top;}
+    .col-qty{border-right:1px solid #CCC;width:80px;text-align:center;font-weight:700;}
+    .doc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;}
+    .doc-firma{text-align:center;font-size:11px;color:#555;margin-top:24px;}
+    .doc-estados{border:1px solid #999;border-collapse:collapse;font-size:11px;}
+    .doc-estados td{padding:4px 12px;border-bottom:1px solid #CCC;}
+    .doc-estados td:first-child{border-right:1px solid #CCC;}
+    .doc-estados tr:last-child td{border-bottom:none;}
+  </style></head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`;
+
+  // 1 — Descargar
+  const blob = new Blob([docHTML], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = nombreArchivo;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  // 2 — Abrir impresión
+  setTimeout(() => {
+    const w = window.open('', '_blank');
+    if (!w) { mostrarToast('Permite ventanas emergentes para imprimir'); return; }
+    w.document.write(docHTML);
+    w.document.close();
+  }, 400);
+
+  mostrarToast(`Descargando ${nombreArchivo}...`);
+}
+
+// ══════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════
+function formatFecha(val) {
+  if (!val) return '—';
+  const [y, m, d] = val.split('-');
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${parseInt(d)} de ${meses[parseInt(m)-1]} de ${y}`;
+}
+function formatFechaCorta(val) {
+  if (!val) return '—';
+  const [y, m, d] = val.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

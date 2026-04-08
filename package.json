@@ -1,0 +1,13 @@
+{
+  "name": "integraf-ot",
+  "version": "1.0.0",
+  "description": "Sistema de Órdenes de Trabajo para InteGraf Digital",
+  "private": true,
+  "scripts": {
+    "dev": "python -m http.server 3000",
+    "build": "echo 'No build step required for static site'"
+  },
+  "keywords": ["integraf", "ordenes-trabajo", "impresion"],
+  "author": "InteGraf Digital",
+  "license": "UNLICENSED"
+}
