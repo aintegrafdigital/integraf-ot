@@ -596,6 +596,7 @@
           <div class="card-title">Historial de OTs</div>
         </div>
         <div class="card-body" style="padding:12px;">
+          <input type="text" id="search-history" placeholder="Buscar OT, empresa..." style="width:100%;padding:8px;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">
           <div class="history-list" id="history-list">
             <div class="empty-history">Cargando...</div>
           </div>
@@ -633,6 +634,7 @@ const SUPA_KEY = 'sb_publishable_ca7CJmuD-HzVSNOUYAYj-w_Ntwc86HK';
 let currentSession = null;
 let itemCount = 0;
 let historial = [];
+let historialFiltrado = [];
 
 // Request helper — adjunta token de sesión si existe
 async function supaFetch(method, path, body) {
@@ -707,6 +709,7 @@ function mostrarApp(email) {
   agregarItem();
   actualizarPanel();
   cargarHistorial();
+  document.getElementById('search-history').addEventListener('input', filtrarHistorial);
   document.addEventListener('input', actualizarChecklist);
 }
 
@@ -835,20 +838,40 @@ async function cargarHistorial() {
   }
 }
 
+function filtrarHistorial() {
+  const query = document.getElementById('search-history').value.toLowerCase();
+  if (!query) {
+    historialFiltrado = [];
+    renderHistorial();
+    return;
+  }
+  historialFiltrado = historial.filter(h =>
+    (h.num && h.num.toLowerCase().includes(query)) ||
+    (h.empresa && h.empresa.toLowerCase().includes(query)) ||
+    (h.fecha_ingreso && h.fecha_ingreso.includes(query))
+  );
+  renderHistorial();
+}
+
 function renderHistorial() {
   const container = document.getElementById('history-list');
-  if (!historial.length) {
+  const data = historialFiltrado.length ? historialFiltrado : historial;
+  if (!data.length) {
     container.innerHTML = '<div class="empty-history">Aún no hay OTs guardadas</div>';
     return;
   }
-  container.innerHTML = historial.map((h, i) => `
+  if (historialFiltrado.length === 0 && document.getElementById('search-history').value) {
+    container.innerHTML = '<div class="empty-history">No se encontraron resultados</div>';
+    return;
+  }
+  container.innerHTML = data.map((h) => `
     <div class="history-item">
-      <div onclick="cargarDesdeHistorial(${i})" style="flex:1;min-width:0;">
+      <div onclick="cargarDesdeHistorial('${h.id}')" style="flex:1;min-width:0;">
         <div class="h-num">OT ${h.num || '—'}</div>
         <div class="h-empresa" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.empresa || 'Sin empresa'}</div>
       </div>
       <div class="h-date">${h.fecha_ingreso ? formatFechaCorta(h.fecha_ingreso) : '—'}</div>
-      <button class="h-del" onclick="eliminarOT('${h.id}', ${i})" title="Eliminar OT">🗑</button>
+      <button class="h-del" onclick="eliminarOT('${h.id}')" title="Eliminar OT">🗑</button>
     </div>`).join('');
 }
 
@@ -884,8 +907,8 @@ async function guardarOT() {
   }
 }
 
-function cargarDesdeHistorial(i) {
-  const h = historial[i];
+function cargarDesdeHistorial(id) {
+  const h = historial.find(ot => ot.id === id);
   document.getElementById('ot-num').value          = h.num || '';
   document.getElementById('ot-empresa').value      = h.empresa || '';
   document.getElementById('ot-contacto').value     = h.contacto || '';
@@ -911,11 +934,13 @@ function cargarDesdeHistorial(i) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function eliminarOT(id, i) {
-  if (!confirm(`¿Eliminar la OT ${historial[i]?.num}? Esta acción no se puede deshacer.`)) return;
+async function eliminarOT(id) {
+  const ot = historial.find(o => o.id === id);
+  if (!confirm(`¿Eliminar la OT ${ot?.num}? Esta acción no se puede deshacer.`)) return;
   try {
     await supaFetch('DELETE', `ordenes?id=eq.${id}`);
-    historial.splice(i, 1);
+    historial = historial.filter(o => o.id !== id);
+    historialFiltrado = historialFiltrado.filter(o => o.id !== id);
     renderHistorial();
     mostrarToast('OT eliminada ✓');
   } catch(e) {
