@@ -758,6 +758,48 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR OT -->
+<div class="modal-overlay" id="modal-edit-ot" style="display:none;">
+  <div class="modal-box" style="width:95%;max-width:900px;">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Editar OT <span id="edit-modal-num" style="color:var(--accent);"></span></div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarModalEditarOT()">← Volver</button>
+      </div>
+    </div>
+    <div style="padding:20px;overflow-y:auto;max-height:75vh;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field"><label>N° OT</label><input type="text" id="edit-ot-num" readonly style="background:#f5f5f5;"></div>
+        <div class="field"><label>Factura</label><input type="text" id="edit-ot-factura"></div>
+        <div class="field"><label>Despacho</label><input type="text" id="edit-ot-despacho"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field"><label>Empresa</label><input type="text" id="edit-ot-empresa"></div>
+        <div class="field"><label>Contacto</label><input type="text" id="edit-ot-contacto"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field"><label>Fecha ingreso</label><input type="date" id="edit-ot-fecha-ingreso"></div>
+        <div class="field"><label>Fecha entrega</label><input type="date" id="edit-ot-fecha-entrega"></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <label style="font-weight:600;font-size:12px;color:var(--text2);">Ítems</label>
+          <button class="btn" onclick="agregarItemModal()" style="font-size:11px;padding:4px 8px;">+ Ítem</button>
+        </div>
+        <div id="edit-items-container"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Observaciones</label>
+        <textarea id="edit-ot-obs" rows="2" style="min-height:60px;"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="btn btn-primary" onclick="confirmarEdicionOT()" style="padding:10px 20px;">✔ Confirmar</button>
+        <span id="edit-confirm-msg" style="display:none;color:green;font-weight:600;">✔ Modificado</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1352,23 +1394,83 @@ function cerrarPanelControl() {
 }
 
 function editarOTdesdePanel(num) {
-  // Encontrar la OT en historial por número
   const ot = historial.find(o => o.num === num);
-  if (!ot) {
-    mostrarToast('OT no encontrada');
-    return;
+  if (!ot) { mostrarToast('OT no encontrada'); return; }
+  document.getElementById('edit-modal-num').textContent = num;
+  document.getElementById('edit-ot-num').value = ot.num || '';
+  document.getElementById('edit-ot-empresa').value = ot.empresa || '';
+  document.getElementById('edit-ot-contacto').value = ot.contacto || '';
+  document.getElementById('edit-ot-factura').value = ot.factura || '';
+  document.getElementById('edit-ot-despacho').value = ot.despacho || '';
+  document.getElementById('edit-ot-fecha-ingreso').value = ot.fecha_ingreso || '';
+  document.getElementById('edit-ot-fecha-entrega').value = ot.fecha_entrega || '';
+  document.getElementById('edit-ot-obs').value = ot.obs || '';
+  const container = document.getElementById('edit-items-container');
+  container.innerHTML = '';
+  editItemCount = 0;
+  (ot.items || []).forEach(it => {
+    agregarItemModal();
+    const cards = container.querySelectorAll('.edit-item-card');
+    const last = cards[cards.length - 1];
+    last.querySelector('.edit-item-qty').value = it.qty || '';
+    last.querySelector('.edit-item-desc').value = it.desc || '';
+    const term = last.querySelector('.edit-item-term');
+    if (term) term.value = it.term || '';
+  });
+  if (editItemCount === 0) agregarItemModal();
+  document.getElementById('edit-confirm-msg').style.display = 'none';
+  document.getElementById('modal-edit-ot').style.display = 'flex';
+}
+
+let editItemCount = 0;
+function cerrarModalEditarOT() { document.getElementById('modal-edit-ot').style.display = 'none'; }
+function agregarItemModal() {
+  editItemCount++;
+  const container = document.getElementById('edit-items-container');
+  const div = document.createElement('div');
+  div.className = 'edit-item-card';
+  div.style.border = '1px solid var(--border)';
+  div.style.borderRadius = 'var(--radius)';
+  div.style.padding = '10px';
+  div.style.marginBottom = '8px';
+  div.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:11px;font-weight:600;">Ítem ' + editItemCount + '</span><button onclick="eliminarItemModal(this)" style="background:0;border:0;cursor:pointer;font-size:16px;">×</button></div><input type="number" min="1" class="edit-item-qty" placeholder="Cantidad" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;"><textarea class="edit-item-desc" placeholder="Descripción" rows="2" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;font-family:inherit;font-size:12px;"></textarea><textarea class="edit-item-term" placeholder="Terminación" rows="1" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-family:inherit;font-size:12px;"></textarea>';
+  container.appendChild(div);
+}
+function eliminarItemModal(btn) {
+  const container = document.getElementById('edit-items-container');
+  if (container.querySelectorAll('.edit-item-card').length <= 1) return;
+  btn.closest('.edit-item-card').remove();
+}
+async function confirmarEdicionOT() {
+  const num = document.getElementById('edit-ot-num').value.trim();
+  if (!num) { mostrarToast('Error: sin número de OT'); return; }
+  const items = [...document.querySelectorAll('#edit-items-container .edit-item-card')].map(c => ({
+    qty: c.querySelector('.edit-item-qty').value,
+    desc: c.querySelector('.edit-item-desc').value.trim(),
+    term: c.querySelector('.edit-item-term')?.value.trim() || ''
+  })).filter(it => it.qty || it.desc);
+  const datos = {
+    empresa: document.getElementById('edit-ot-empresa').value.trim(),
+    contacto: document.getElementById('edit-ot-contacto').value.trim(),
+    factura: document.getElementById('edit-ot-factura').value.trim(),
+    despacho: document.getElementById('edit-ot-despacho').value.trim(),
+    fecha_ingreso: document.getElementById('edit-ot-fecha-ingreso').value,
+    fecha_entrega: document.getElementById('edit-ot-fecha-entrega').value,
+    obs: document.getElementById('edit-ot-obs').value.trim(),
+    items
+  };
+  try {
+    const existentes = await supaFetch('GET', 'ordenes?num=eq.' + encodeURIComponent(num) + '&select=id') || [];
+    if (!existentes.length) { mostrarToast('OT no encontrada'); return; }
+    await supaFetch('PATCH', 'ordenes?id=eq.' + existentes[0].id, datos);
+    const msg = document.getElementById('edit-confirm-msg');
+    msg.style.display = 'inline';
+    await cargarHistorial();
+    await cargarPanelControl();
+    setTimeout(() => { cerrarModalEditarOT(); }, 1500);
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 60));
   }
-
-  // Cargar en formulario (usar la función existente)
-  cargarDesdeHistorial(ot.id);
-
-  // Cerrar modal del panel
-  cerrarPanelControl();
-
-  // Cambiar vista a "Hacer OT"
-  cambiarVista('hacer-ot');
-
-  mostrarToast('OT cargada ✓');
 }
 
 async function cargarCorrelativo() {
