@@ -16,9 +16,9 @@
     --text: #1A1814;
     --text2: #6B6760;
     --text3: #9B9890;
-    --accent: #1A4FA0;
-    --accent-light: #E8EEF8;
-    --accent-text: #0D3270;
+    --accent: #E67E22;
+    --accent-light: #FFF3E0;
+    --accent-text: #B8590C;
     --danger: #B83232;
     --danger-light: #FBF0F0;
     --success: #1A6E3C;
@@ -45,12 +45,13 @@
     padding: 1rem;
   }
   .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: #FFFBF7;
+    border: 2px solid var(--accent);
     border-radius: var(--radius-lg);
     padding: 2.5rem 2rem;
     width: 100%;
     max-width: 380px;
+    box-shadow: 0 4px 20px rgba(230, 126, 34, 0.1);
   }
   .login-logo {
     text-align: center;
@@ -89,7 +90,7 @@
   }
   .login-field input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(26,79,160,0.1);
+    box-shadow: 0 0 0 3px rgba(230,126,34,0.15);
   }
   .btn-login {
     width: 100%; margin-top: 8px;
@@ -206,8 +207,8 @@
     line-height: 1.4;
   }
   .field input:focus, .field textarea:focus, .field select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(26,79,160,0.1);
+    border-color: var(--border2);
+    box-shadow: 0 0 0 3px rgba(200,195,184,0.1);
   }
   .field textarea { resize: vertical; min-height: 80px; }
 
@@ -494,9 +495,9 @@
         </div>
         <div class="card-body gap-section">
           <div class="grid-3">
-            <div class="field">
+            <div class="field" id="field-ot-num" style="display:none;">
               <label>N° de OT</label>
-              <input type="text" id="ot-num" placeholder="42311" oninput="actualizarPanel()" />
+              <input type="text" id="ot-num" placeholder="(se asigna al guardar)" readonly style="background:#f5f5f5; cursor:default; border:1px solid #ccc;" oninput="actualizarPanel()" />
             </div>
             <div class="field">
               <label>N° Factura</label>
@@ -673,6 +674,7 @@
         <h3 style="margin-bottom:10px;">Crear nuevo usuario</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <input type="email" id="admin-email" placeholder="correo@example.com" style="flex:1;min-width:200px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+          <input type="password" id="admin-password" placeholder="Contraseña" style="flex:1;min-width:150px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
           <select id="admin-rol" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
             <option value="trabajador">Trabajador</option>
             <option value="secretaria">Secretaria</option>
@@ -686,6 +688,16 @@
         <div id="admin-usuarios-list" style="display:flex;flex-direction:column;gap:8px;">
           <div style="color:var(--text3);">Cargando...</div>
         </div>
+      </div>
+      <hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">
+      <div style="margin-bottom:20px;">
+        <h3 style="margin-bottom:10px;">Numeración de OTs</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="white-space:nowrap;">Próximo N° de OT:</label>
+          <input type="number" id="admin-siguiente-num" style="width:100px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);" placeholder="1000" />
+          <button class="btn btn-primary" onclick="configurarNumeroOT()">Guardar</button>
+        </div>
+        <p id="admin-num-status" style="color:gray;font-size:0.85em;margin-top:8px;"></p>
       </div>
     </div>
   </div>
@@ -734,6 +746,7 @@
               <th style="padding:10px;text-align:left;font-weight:600;">Cliente</th>
               <th style="padding:10px;text-align:left;font-weight:600;">Vendedor</th>
               <th style="padding:10px;text-align:left;font-weight:600;">Factura</th>
+              <th style="padding:10px;text-align:center;font-weight:600;">Acción</th>
             </tr>
           </thead>
           <tbody id="tabla-panel-body">
@@ -843,6 +856,7 @@ async function mostrarApp(email) {
   document.getElementById('btn-panel-control').style.display = (rol === 'admin' || rol === 'secretaria') ? 'block' : 'none';
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('ot-fecha-ingreso').value = hoy;
+  document.getElementById('field-ot-num').style.display = 'none';
   agregarItem();
   actualizarPanel();
   cargarHistorial();
@@ -1027,13 +1041,29 @@ function renderHistorial() {
   }).join('');
 }
 
+async function obtenerSiguienteNumOT() {
+  const res = await supaFetch('GET', "configuracion?clave=eq.ultimo_num_ot&select=valor") || [];
+  if (!res.length) throw new Error('No se encontró configuración de numeración');
+  const siguiente = parseInt(res[0].valor) + 1;
+  await supaFetch('PATCH', 'configuracion?clave=eq.ultimo_num_ot', { valor: String(siguiente) });
+  return String(siguiente);
+}
+
 async function guardarOT() {
   const datos = obtenerDatos();
-  if (!datos.num) { mostrarToast('Ingresa un N° de OT primero'); return; }
+  let num = datos.num;
 
   mostrarToast('Guardando...');
   try {
-    const existentes = await supaFetch('GET', `ordenes?num=eq.${encodeURIComponent(datos.num)}&select=id`) || [];
+    if (!num) {
+      // New OT: auto-assign number
+      num = await obtenerSiguienteNumOT();
+      document.getElementById('ot-num').value = num;
+      datos.num = num;
+      actualizarPanel();
+    }
+
+    const existentes = await supaFetch('GET', `ordenes?num=eq.${encodeURIComponent(num)}&select=id`) || [];
 
     if (existentes.length > 0) {
       await supaFetch('PATCH', `ordenes?id=eq.${existentes[0].id}`, {
@@ -1046,12 +1076,12 @@ async function guardarOT() {
     } else {
       const email = currentSession?.user?.email || '';
       await supaFetch('POST', 'ordenes', {
-        num: datos.num, empresa: datos.empresa, contacto: datos.contacto,
+        num: num, empresa: datos.empresa, contacto: datos.contacto,
         factura: datos.factura, despacho: datos.despacho,
         fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
         items: datos.items, obs: datos.obs, creado_por: email
       });
-      mostrarToast('OT guardada en la nube ✓');
+      mostrarToast(`OT N°${num} guardada en la nube ✓`);
     }
     await cargarHistorial();
   } catch(e) {
@@ -1062,6 +1092,7 @@ async function guardarOT() {
 
 function cargarDesdeHistorial(id) {
   const h = historial.find(ot => ot.id === id);
+  document.getElementById('field-ot-num').style.display = 'flex';
   document.getElementById('ot-num').value          = h.num || '';
   document.getElementById('ot-empresa').value      = h.empresa || '';
   document.getElementById('ot-contacto').value     = h.contacto || '';
@@ -1106,6 +1137,7 @@ function limpiarFormulario() {
   ['ot-num','ot-empresa','ot-contacto','ot-factura','ot-despacho','ot-fecha-entrega','ot-obs'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  document.getElementById('field-ot-num').style.display = 'none';
   document.getElementById('ot-fecha-ingreso').value = new Date().toISOString().split('T')[0];
   document.getElementById('items-container').innerHTML = '';
   itemCount = 0;
@@ -1319,6 +1351,26 @@ function cerrarPanelControl() {
   document.getElementById('modal-panel-control').style.display = 'none';
 }
 
+function editarOTdesdePanel(num) {
+  // Encontrar la OT en historial por número
+  const ot = historial.find(o => o.num === num);
+  if (!ot) {
+    mostrarToast('OT no encontrada');
+    return;
+  }
+
+  // Cargar en formulario (usar la función existente)
+  cargarDesdeHistorial(ot.id);
+
+  // Cerrar modal del panel
+  cerrarPanelControl();
+
+  // Cambiar vista a "Hacer OT"
+  cambiarVista('hacer-ot');
+
+  mostrarToast('OT cargada ✓');
+}
+
 async function cargarCorrelativo() {
   const tbody = document.getElementById('tabla-correlativo-body');
   tbody.innerHTML = '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--text3);">Cargando...</td></tr>';
@@ -1391,16 +1443,18 @@ function aplicarFiltrosPanelControl() {
 
   tbody.innerHTML = filtrados.map((o) => {
     const sinFactura = !o.factura;
-    const trabajo = (o.items && Array.isArray(o.items)) ? o.items.map(i => i.desc).join(', ').substring(0, 30) : '—';
     return `
       <tr style="border-bottom:1px solid var(--border);">
-        <td style="padding:6px;font-weight:600;">${esc(o.num || '—')}</td>
-        <td style="padding:6px;font-size:10px;">${o.fecha_ingreso ? formatFechaCorta(o.fecha_ingreso) : '—'}</td>
-        <td style="padding:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;">${esc(o.empresa || '—')}</td>
-        <td style="padding:6px;font-size:10px;">${esc((o.creado_por || '—').split('@')[0])}</td>
-        <td style="padding:6px;font-size:10px;display:flex;align-items:center;gap:4px;">
+        <td style="padding:10px;font-weight:600;">${esc(o.num || '—')}</td>
+        <td style="padding:10px;font-size:11px;">${o.fecha_ingreso ? formatFechaCorta(o.fecha_ingreso) : '—'}</td>
+        <td style="padding:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${esc(o.empresa || '—')}</td>
+        <td style="padding:10px;font-size:11px;">${esc((o.creado_por || '—').split('@')[0])}</td>
+        <td style="padding:10px;font-size:11px;display:flex;align-items:center;gap:4px;">
           ${sinFactura ? '<span style="color:var(--danger);font-size:16px;">●</span>' : ''}
           <span>${esc(o.factura || '—')}</span>
+        </td>
+        <td style="padding:10px;text-align:center;">
+          <button onclick="editarOTdesdePanel('${esc(o.num)}')" style="padding:4px 8px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:600;">Editar</button>
         </td>
       </tr>
     `;
@@ -1410,9 +1464,13 @@ function aplicarFiltrosPanelControl() {
 // ══════════════════════════════════════════
 // PANEL ADMIN
 // ══════════════════════════════════════════
-function abrirPanelAdmin() {
+async function abrirPanelAdmin() {
   document.getElementById('modal-admin').style.display = 'flex';
   cargarUsuarios();
+  const cfg = await supaFetch('GET', "configuracion?clave=eq.ultimo_num_ot&select=valor") || [];
+  if (cfg.length) {
+    document.getElementById('admin-siguiente-num').value = parseInt(cfg[0].valor) + 1;
+  }
 }
 
 function cerrarPanelAdmin() {
@@ -1449,15 +1507,37 @@ async function cargarUsuarios() {
 
 async function crearUsuario() {
   const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value.trim();
   const rol = document.getElementById('admin-rol').value;
   if (!email) { mostrarToast('Ingresa un email'); return; }
+  if (!password) { mostrarToast('Ingresa una contraseña'); return; }
+  if (password.length < 6) { mostrarToast('La contraseña debe tener al menos 6 caracteres'); return; }
+
+  mostrarToast('Creando usuario...');
   try {
+    // 1. Crear usuario en Supabase Auth
+    const authRes = await fetch(`${SUPA_URL}/auth/v1/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY
+      },
+      body: JSON.stringify({ email, password })
+    });
+    const authData = await authRes.json();
+    if (!authRes.ok) {
+      throw new Error(authData.message || 'Error creando usuario en Auth');
+    }
+
+    // 2. Crear registro en tabla usuarios
     await supaFetch('POST', 'usuarios', { email, rol });
+
     document.getElementById('admin-email').value = '';
-    mostrarToast('Usuario creado ✓');
+    document.getElementById('admin-password').value = '';
+    mostrarToast('Usuario creado ✓ Email: ' + email);
     cargarUsuarios();
   } catch(e) {
-    mostrarToast('Error: ' + e.message.slice(0, 50));
+    mostrarToast('Error: ' + e.message.slice(0, 60));
   }
 }
 
@@ -1480,6 +1560,16 @@ async function eliminarUsuario(email) {
   } catch(e) {
     mostrarToast('Error: ' + e.message.slice(0, 50));
   }
+}
+
+async function configurarNumeroOT() {
+  const input = document.getElementById('admin-siguiente-num');
+  const siguiente = parseInt(input.value);
+  if (!siguiente || siguiente < 1) { mostrarToast('Número inválido'); return; }
+  const anterior = siguiente - 1;
+  await supaFetch('PATCH', 'configuracion?clave=eq.ultimo_num_ot', { valor: String(anterior) });
+  document.getElementById('admin-num-status').textContent = `✓ El próximo N° de OT será ${siguiente}`;
+  mostrarToast(`Numeración configurada: próxima OT será N°${siguiente}`);
 }
 </script>
 </body>
