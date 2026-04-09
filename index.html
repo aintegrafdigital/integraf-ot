@@ -473,6 +473,7 @@
         <span id="user-email-label">—</span>
       </div>
       <div class="header-actions">
+        <button class="btn" id="panel-admin-btn" onclick="abrirPanelAdmin()" title="Panel de administración" style="display:none;">⚙️ Admin</button>
         <button class="btn" onclick="limpiarFormulario()">&#10023; Nueva OT</button>
         <button class="btn btn-primary" onclick="mostrarPrevia()">&#9654; Vista previa</button>
         <button class="btn btn-danger" onclick="cerrarSesion()" title="Cerrar sesión">&#8594; Salir</button>
@@ -622,6 +623,38 @@
   </div>
 </div>
 
+<!-- MODAL PANEL ADMIN -->
+<div class="modal-overlay" id="modal-admin" style="display:none;">
+  <div class="modal-box" style="width:90%;max-width:600px;">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Panel de Administración</div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarPanelAdmin()">← Cerrar</button>
+      </div>
+    </div>
+    <div style="padding:20px;overflow-y:auto;max-height:400px;">
+      <div style="margin-bottom:20px;">
+        <h3 style="margin-bottom:10px;">Crear nuevo usuario</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="email" id="admin-email" placeholder="correo@example.com" style="flex:1;min-width:200px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+          <select id="admin-rol" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+            <option value="trabajador">Trabajador</option>
+            <option value="secretaria">Secretaria</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-primary" onclick="crearUsuario()">Crear</button>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:10px;">Usuarios existentes</h3>
+        <div id="admin-usuarios-list" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="color:var(--text3);">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -700,10 +733,23 @@ function mostrarErrorLogin(msg) {
   el.classList.add('show');
 }
 
-function mostrarApp(email) {
+async function obtenerRol(email) {
+  try {
+    const usuarios = await supaFetch('GET', `usuarios?email=eq.${encodeURIComponent(email)}&select=rol`) || [];
+    return usuarios.length ? usuarios[0].rol : 'trabajador';
+  } catch(e) {
+    console.error('Error obteniendo rol:', e);
+    return 'trabajador';
+  }
+}
+
+async function mostrarApp(email) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('user-email-label').textContent = email || currentSession?.user?.email || '—';
+  const rol = await obtenerRol(email);
+  sessionStorage.setItem('ot_userRole', rol);
+  document.getElementById('panel-admin-btn').style.display = rol === 'admin' ? 'block' : 'none';
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('ot-fecha-ingreso').value = hoy;
   agregarItem();
@@ -830,7 +876,16 @@ async function cargarHistorial() {
   const container = document.getElementById('history-list');
   container.innerHTML = '<div class="empty-history">Cargando...</div>';
   try {
-    historial = await supaFetch('GET', 'ordenes?select=*&order=creada_en.desc&limit=50') || [];
+    const rol = sessionStorage.getItem('ot_userRole') || 'trabajador';
+    const email = currentSession?.user?.email || '';
+    let datos = await supaFetch('GET', 'ordenes?select=*&order=creada_en.desc&limit=50') || [];
+
+    // Filtrar del lado del cliente si es trabajador
+    if (rol === 'trabajador') {
+      datos = datos.filter(o => o.creado_por === email);
+    }
+
+    historial = datos;
     renderHistorial();
   } catch(e) {
     container.innerHTML = '<div class="empty-history" style="color:var(--danger);">Error al cargar historial</div>';
@@ -864,15 +919,21 @@ function renderHistorial() {
     container.innerHTML = '<div class="empty-history">No se encontraron resultados</div>';
     return;
   }
-  container.innerHTML = data.map((h) => `
+  const rol = sessionStorage.getItem('ot_userRole') || 'trabajador';
+  const email = currentSession?.user?.email || '';
+  container.innerHTML = data.map((h) => {
+    const puedeEditar = rol !== 'trabajador' || h.creado_por === email;
+    return `
     <div class="history-item">
       <div onclick="cargarDesdeHistorial('${h.id}')" style="flex:1;min-width:0;">
         <div class="h-num">OT ${h.num || '—'}</div>
         <div class="h-empresa" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.empresa || 'Sin empresa'}</div>
+        ${rol !== 'trabajador' && h.creado_por ? `<div style="font-size:10px;color:var(--text3);">Por: ${h.creado_por.split('@')[0]}</div>` : ''}
       </div>
       <div class="h-date">${h.fecha_ingreso ? formatFechaCorta(h.fecha_ingreso) : '—'}</div>
-      <button class="h-del" onclick="eliminarOT('${h.id}')" title="Eliminar OT">🗑</button>
-    </div>`).join('');
+      ${puedeEditar ? `<button class="h-del" onclick="eliminarOT('${h.id}')" title="Eliminar OT">🗑</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
 async function guardarOT() {
@@ -892,11 +953,12 @@ async function guardarOT() {
       });
       mostrarToast('OT actualizada en la nube ✓');
     } else {
+      const email = currentSession?.user?.email || '';
       await supaFetch('POST', 'ordenes', {
         num: datos.num, empresa: datos.empresa, contacto: datos.contacto,
         factura: datos.factura, despacho: datos.despacho,
         fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
-        items: datos.items, obs: datos.obs
+        items: datos.items, obs: datos.obs, creado_por: email
       });
       mostrarToast('OT guardada en la nube ✓');
     }
@@ -1126,6 +1188,81 @@ function mostrarToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════
+// PANEL ADMIN
+// ══════════════════════════════════════════
+function abrirPanelAdmin() {
+  document.getElementById('modal-admin').style.display = 'flex';
+  cargarUsuarios();
+}
+
+function cerrarPanelAdmin() {
+  document.getElementById('modal-admin').style.display = 'none';
+}
+
+async function cargarUsuarios() {
+  const container = document.getElementById('admin-usuarios-list');
+  container.innerHTML = '<div style="color:var(--text3);">Cargando...</div>';
+  try {
+    const usuarios = await supaFetch('GET', 'usuarios?select=*&order=creado_en.asc') || [];
+    if (!usuarios.length) {
+      container.innerHTML = '<div style="color:var(--text3);">Sin usuarios</div>';
+      return;
+    }
+    container.innerHTML = usuarios.map(u => `
+      <div style="padding:8px;background:var(--surface2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">${esc(u.email)}</div>
+          <div style="font-size:11px;color:var(--text3);">Rol: <b>${esc(u.rol)}</b></div>
+        </div>
+        <select onchange="cambiarRol('${u.email}', this.value)" style="padding:4px;font-size:11px;">
+          <option value="trabajador" ${u.rol === 'trabajador' ? 'selected' : ''}>Trabajador</option>
+          <option value="secretaria" ${u.rol === 'secretaria' ? 'selected' : ''}>Secretaria</option>
+          <option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+        <button onclick="eliminarUsuario('${u.email}')" style="padding:4px 8px;background:var(--danger-light);color:var(--danger);border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">🗑</button>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--danger);">Error: ${e.message.slice(0, 40)}</div>`;
+  }
+}
+
+async function crearUsuario() {
+  const email = document.getElementById('admin-email').value.trim();
+  const rol = document.getElementById('admin-rol').value;
+  if (!email) { mostrarToast('Ingresa un email'); return; }
+  try {
+    await supaFetch('POST', 'usuarios', { email, rol });
+    document.getElementById('admin-email').value = '';
+    mostrarToast('Usuario creado ✓');
+    cargarUsuarios();
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 50));
+  }
+}
+
+async function cambiarRol(email, nuevoRol) {
+  try {
+    await supaFetch('PATCH', `usuarios?email=eq.${encodeURIComponent(email)}`, { rol: nuevoRol });
+    mostrarToast('Rol actualizado ✓');
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 50));
+    cargarUsuarios();
+  }
+}
+
+async function eliminarUsuario(email) {
+  if (!confirm(`¿Eliminar usuario ${email}? Esta acción no se puede deshacer.`)) return;
+  try {
+    await supaFetch('DELETE', `usuarios?email=eq.${encodeURIComponent(email)}`);
+    mostrarToast('Usuario eliminado ✓');
+    cargarUsuarios();
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 50));
+  }
 }
 </script>
 </body>
