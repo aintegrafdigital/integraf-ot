@@ -566,6 +566,15 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
 
+      <!-- Botones de navegación -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btn-hacer-ot" onclick="cambiarVista('hacer-ot')" style="flex:1;min-width:100px;">📝 Hacer OT</button>
+        <button class="btn" id="btn-correlativo" onclick="cambiarVista('correlativo')" style="flex:1;min-width:100px;">📊 Correlativo</button>
+        <button class="btn" id="btn-panel-control" onclick="cambiarVista('panel-control')" style="flex:1;min-width:100px;display:none;">⚡ Panel</button>
+      </div>
+
+      <!-- VISTA: Hacer OT -->
+      <div id="vista-hacer-ot">
       <div class="ot-number-display">
         <div class="ot-label">Orden de trabajo</div>
         <div class="ot-val" id="panel-num">—</div>
@@ -603,6 +612,33 @@
           </div>
         </div>
       </div>
+      </div><!-- /vista-hacer-ot -->
+
+      <!-- VISTA: Correlativo -->
+      <div id="vista-correlativo" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Correlativo de OTs</div>
+          </div>
+          <div class="card-body" style="padding:12px;overflow-x:auto;">
+            <table id="tabla-correlativo" style="width:100%;font-size:11px;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+                  <th style="padding:8px;text-align:left;font-weight:600;">Nº OT</th>
+                  <th style="padding:8px;text-align:left;font-weight:600;">Fecha</th>
+                  <th style="padding:8px;text-align:left;font-weight:600;">Cliente</th>
+                  <th style="padding:8px;text-align:left;font-weight:600;">Vendedor</th>
+                  <th style="padding:8px;text-align:left;font-weight:600;">Factura</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-correlativo-body">
+                <tr><td colspan="5" style="padding:8px;text-align:center;color:var(--text3);">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /vista-correlativo -->
 
     </div><!-- /sidebar -->
 
@@ -650,6 +686,60 @@
         <div id="admin-usuarios-list" style="display:flex;flex-direction:column;gap:8px;">
           <div style="color:var(--text3);">Cargando...</div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PANEL DE CONTROL -->
+<div class="modal-overlay" id="modal-panel-control" style="display:none;">
+  <div class="modal-box" style="width:95%;max-width:1200px;max-height:90vh;">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Panel de Control</div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarPanelControl()">← Cerrar</button>
+      </div>
+    </div>
+    <div style="padding:20px;overflow-y:auto;max-height:calc(90vh - 60px);">
+      <!-- Filtros -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:15px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Nombre (Cliente)</label>
+          <input type="text" id="filtro-nombre" placeholder="Filtrar por nombre..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Vendedor</label>
+          <input type="text" id="filtro-vendedor" placeholder="Filtrar por vendedor..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Rango de Fecha</label>
+          <div style="display:flex;gap:5px;">
+            <input type="date" id="filtro-fecha-desde" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;box-sizing:border-box;" title="Desde">
+            <span style="display:flex;align-items:center;color:var(--text3);">—</span>
+            <input type="date" id="filtro-fecha-hasta" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;box-sizing:border-box;" title="Hasta">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Factura</label>
+          <input type="text" id="filtro-factura" placeholder="Filtrar por factura..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;box-sizing:border-box;">
+        </div>
+      </div>
+      <!-- Tabla -->
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);">
+        <table id="tabla-panel" style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;">
+              <th style="padding:10px;text-align:left;font-weight:600;">Nº OT</th>
+              <th style="padding:10px;text-align:left;font-weight:600;">Fecha</th>
+              <th style="padding:10px;text-align:left;font-weight:600;">Cliente</th>
+              <th style="padding:10px;text-align:left;font-weight:600;">Vendedor</th>
+              <th style="padding:10px;text-align:left;font-weight:600;">Factura</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-panel-body">
+            <tr><td colspan="5" style="padding:10px;text-align:center;color:var(--text3);">Cargando...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -750,6 +840,7 @@ async function mostrarApp(email) {
   const rol = await obtenerRol(email);
   sessionStorage.setItem('ot_userRole', rol);
   document.getElementById('panel-admin-btn').style.display = rol === 'admin' ? 'block' : 'none';
+  document.getElementById('btn-panel-control').style.display = (rol === 'admin' || rol === 'secretaria') ? 'block' : 'none';
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('ot-fecha-ingreso').value = hoy;
   agregarItem();
@@ -1188,6 +1279,132 @@ function mostrarToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════
+// NAVEGACIÓN ENTRE VISTAS
+// ══════════════════════════════════════════
+function cambiarVista(vista) {
+  const hacerOT = document.getElementById('vista-hacer-ot');
+  const correlativo = document.getElementById('vista-correlativo');
+  const btnHacerOT = document.getElementById('btn-hacer-ot');
+  const btnCorrelativo = document.getElementById('btn-correlativo');
+
+  if (vista === 'hacer-ot') {
+    hacerOT.style.display = 'block';
+    correlativo.style.display = 'none';
+    btnHacerOT.classList.add('btn-primary');
+    btnHacerOT.classList.remove('btn');
+    btnCorrelativo.classList.remove('btn-primary');
+    btnCorrelativo.classList.add('btn');
+  } else if (vista === 'correlativo') {
+    hacerOT.style.display = 'none';
+    correlativo.style.display = 'block';
+    btnHacerOT.classList.remove('btn-primary');
+    btnHacerOT.classList.add('btn');
+    btnCorrelativo.classList.add('btn-primary');
+    btnCorrelativo.classList.remove('btn');
+    cargarCorrelativo();
+  } else if (vista === 'panel-control') {
+    abrirPanelControlModal();
+  }
+}
+
+function abrirPanelControlModal() {
+  document.getElementById('modal-panel-control').style.display = 'flex';
+  cargarPanelControl();
+}
+
+function cerrarPanelControl() {
+  document.getElementById('modal-panel-control').style.display = 'none';
+}
+
+async function cargarCorrelativo() {
+  const tbody = document.getElementById('tabla-correlativo-body');
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--text3);">Cargando...</td></tr>';
+  try {
+    // Correlativo SIEMPRE muestra TODAS las OTs (sin filtrar por rol)
+    let datos = await supaFetch('GET', 'ordenes?select=num,fecha_ingreso,empresa,creado_por,factura&order=num.asc') || [];
+
+    if (!datos.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--text3);">Sin OTs</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = datos.map((o) => `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px;font-weight:600;">${esc(o.num || '—')}</td>
+        <td style="padding:8px;">${o.fecha_ingreso ? formatFechaCorta(o.fecha_ingreso) : '—'}</td>
+        <td style="padding:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(o.empresa || '—')}</td>
+        <td style="padding:8px;">${esc((o.creado_por || '—').split('@')[0])}</td>
+        <td style="padding:8px;">${esc(o.factura || '—')}</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--danger);">Error: ${e.message.slice(0, 40)}</td></tr>`;
+  }
+}
+
+let datosPanel = [];
+
+async function cargarPanelControl() {
+  const tbody = document.getElementById('tabla-panel-body');
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:6px;text-align:center;color:var(--text3);">Cargando...</td></tr>';
+  try {
+    // Cargar todos los datos (sin filtrar por rol)
+    datosPanel = await supaFetch('GET', 'ordenes?select=num,fecha_ingreso,empresa,creado_por,factura,items&order=num.asc') || [];
+    aplicarFiltrosPanelControl();
+
+    // Agregar listeners para filtros
+    document.getElementById('filtro-nombre').addEventListener('input', aplicarFiltrosPanelControl);
+    document.getElementById('filtro-vendedor').addEventListener('input', aplicarFiltrosPanelControl);
+    document.getElementById('filtro-fecha-desde').addEventListener('change', aplicarFiltrosPanelControl);
+    document.getElementById('filtro-fecha-hasta').addEventListener('change', aplicarFiltrosPanelControl);
+    document.getElementById('filtro-factura').addEventListener('input', aplicarFiltrosPanelControl);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:6px;text-align:center;color:var(--danger);">Error: ${e.message.slice(0, 40)}</td></tr>`;
+  }
+}
+
+function aplicarFiltrosPanelControl() {
+  const nombre = document.getElementById('filtro-nombre').value.toLowerCase();
+  const vendedor = document.getElementById('filtro-vendedor').value.toLowerCase();
+  const fechaDesde = document.getElementById('filtro-fecha-desde').value;
+  const fechaHasta = document.getElementById('filtro-fecha-hasta').value;
+  const factura = document.getElementById('filtro-factura').value.toLowerCase();
+  const tbody = document.getElementById('tabla-panel-body');
+
+  let filtrados = datosPanel.filter(o => {
+    const matchNombre = !nombre || (o.empresa && o.empresa.toLowerCase().includes(nombre));
+    const matchVendedor = !vendedor || (o.creado_por && o.creado_por.toLowerCase().includes(vendedor));
+    const matchFecha = (!fechaDesde && !fechaHasta) ||
+      ((!fechaDesde || o.fecha_ingreso >= fechaDesde) &&
+       (!fechaHasta || o.fecha_ingreso <= fechaHasta));
+    const matchFactura = !factura || (o.factura && o.factura.toLowerCase().includes(factura)) || (!o.factura && factura === '');
+    return matchNombre && matchVendedor && matchFecha && matchFactura;
+  });
+
+  if (!filtrados.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:6px;text-align:center;color:var(--text3);font-size:11px;">Sin resultados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map((o) => {
+    const sinFactura = !o.factura;
+    const trabajo = (o.items && Array.isArray(o.items)) ? o.items.map(i => i.desc).join(', ').substring(0, 30) : '—';
+    return `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px;font-weight:600;">${esc(o.num || '—')}</td>
+        <td style="padding:6px;font-size:10px;">${o.fecha_ingreso ? formatFechaCorta(o.fecha_ingreso) : '—'}</td>
+        <td style="padding:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;">${esc(o.empresa || '—')}</td>
+        <td style="padding:6px;font-size:10px;">${esc((o.creado_por || '—').split('@')[0])}</td>
+        <td style="padding:6px;font-size:10px;display:flex;align-items:center;gap:4px;">
+          ${sinFactura ? '<span style="color:var(--danger);font-size:16px;">●</span>' : ''}
+          <span>${esc(o.factura || '—')}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ══════════════════════════════════════════
