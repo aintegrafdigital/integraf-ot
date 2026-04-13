@@ -758,6 +758,34 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR USUARIO -->
+<div class="modal-overlay" id="modal-editar-usuario" style="display:none;">
+  <div class="modal-box" style="width:90%;max-width:400px;">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Editar usuario</div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarModalEditarUsuario()">✕</button>
+      </div>
+    </div>
+    <div style="padding:20px;">
+      <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:var(--radius);">
+        <div style="font-size:12px;color:var(--text2);">Email:</div>
+        <div style="font-weight:600;" id="modal-edit-email">—</div>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Nombre completo</label>
+        <input type="text" id="modal-edit-nombre" placeholder="Ej: Milton Guerra V." style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>Puesto</label>
+        <input type="text" id="modal-edit-puesto" placeholder="Ej: Jefe Área Comercial" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+      </div>
+      <button class="btn btn-primary" onclick="confirmarEditarUsuario()" style="width:100%;padding:10px;">Guardar cambios</button>
+      <div id="modal-edit-status" style="margin-top:10px;color:green;font-size:12px;text-align:center;display:none;">✔ Actualizado</div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CAMBIAR CONTRASEÑA -->
 <div class="modal-overlay" id="modal-cambiar-pwd" style="display:none;">
   <div class="modal-box" style="width:90%;max-width:400px;">
@@ -1240,8 +1268,13 @@ function obtenerDatos() {
 // ══════════════════════════════════════════
 // VISTA PREVIA
 // ══════════════════════════════════════════
-function mostrarPrevia() {
+async function mostrarPrevia() {
   const d = obtenerDatos();
+  const email = currentSession?.user?.email || '';
+  const usuarios = await supaFetch('GET', 'usuarios?email=eq.' + encodeURIComponent(email) + '&select=nombre_completo,puesto') || [];
+  const usuario = usuarios.length ? usuarios[0] : { nombre_completo: 'InteGraf Digital', puesto: 'Equipo' };
+  const nombreUsuario = usuario.nombre_completo || 'InteGraf Digital';
+  const puestoUsuario = usuario.puesto || 'Equipo';
   const itemsHTML = d.items.length
     ? d.items.map((it, idx) => `
         <tr>
@@ -1288,7 +1321,7 @@ function mostrarPrevia() {
       <div>
         <b>Fecha de Entrega:</b> ${d.fechaEntrega ? formatFecha(d.fechaEntrega) : '—'}
         <div class="doc-firma" style="margin-top:24px;">
-          Milton Guerra V.<br>Jefe Área Comercial<br>www.integrafdigital.cl
+          ${nombreUsuario}<br>${puestoUsuario}<br>www.integrafdigital.cl
         </div>
       </div>
       <table class="doc-estados">
@@ -1617,16 +1650,18 @@ async function cargarUsuarios() {
       return;
     }
     container.innerHTML = usuarios.map(u => `
-      <div style="padding:8px;background:var(--surface2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <div style="flex:1;">
+      <div style="padding:8px;background:var(--surface2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
           <div style="font-size:13px;font-weight:500;">${esc(u.email)}</div>
           <div style="font-size:11px;color:var(--text3);">Rol: <b>${esc(u.rol)}</b></div>
+          <div style="font-size:11px;color:var(--text3);">${esc(u.nombre_completo || '—')} • ${esc(u.puesto || '—')}</div>
         </div>
         <select onchange="cambiarRol('${u.email}', this.value)" style="padding:4px;font-size:11px;">
           <option value="trabajador" ${u.rol === 'trabajador' ? 'selected' : ''}>Trabajador</option>
           <option value="secretaria" ${u.rol === 'secretaria' ? 'selected' : ''}>Secretaria</option>
           <option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Admin</option>
         </select>
+        <button onclick="abrirModalEditarUsuario('${u.email}', '${esc(u.nombre_completo || '')}', '${esc(u.puesto || '')}')" style="padding:4px 8px;background:#4CAF50;color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">✏️</button>
         <button onclick="abrirModalCambiarContrasena('${u.email}')" style="padding:4px 8px;background:#E8681A;color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">🔑</button>
         <button onclick="eliminarUsuario('${u.email}')" style="padding:4px 8px;background:var(--danger-light);color:var(--danger);border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">🗑</button>
       </div>
@@ -1733,6 +1768,41 @@ async function confirmarCambiarContrasena() {
       cerrarModalCambiarContrasena();
       cargarUsuarios();
       mostrarToast('Contraseña actualizada ✓');
+    }, 1500);
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 60));
+  }
+}
+
+function abrirModalEditarUsuario(email, nombre, puesto) {
+  document.getElementById('modal-edit-email').textContent = email;
+  document.getElementById('modal-edit-nombre').value = nombre;
+  document.getElementById('modal-edit-puesto').value = puesto;
+  document.getElementById('modal-edit-status').style.display = 'none';
+  document.getElementById('modal-editar-usuario').style.display = 'flex';
+  window.emailEditarUsuario = email;
+}
+
+function cerrarModalEditarUsuario() {
+  document.getElementById('modal-editar-usuario').style.display = 'none';
+}
+
+async function confirmarEditarUsuario() {
+  const nombre = document.getElementById('modal-edit-nombre').value.trim();
+  const puesto = document.getElementById('modal-edit-puesto').value.trim();
+  const email = window.emailEditarUsuario;
+
+  if (!nombre) { mostrarToast('Ingresa el nombre completo'); return; }
+  if (!puesto) { mostrarToast('Ingresa el puesto'); return; }
+
+  try {
+    await supaFetch('PATCH', 'usuarios?email=eq.' + encodeURIComponent(email), { nombre_completo: nombre, puesto: puesto });
+    const status = document.getElementById('modal-edit-status');
+    status.style.display = 'block';
+    setTimeout(() => {
+      cerrarModalEditarUsuario();
+      cargarUsuarios();
+      mostrarToast('Usuario actualizado ✓');
     }, 1500);
   } catch(e) {
     mostrarToast('Error: ' + e.message.slice(0, 60));
