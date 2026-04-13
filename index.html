@@ -556,6 +556,22 @@
         </div>
       </div>
 
+      <!-- Imágenes de referencia -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📎</div>
+          <div class="card-title">Imágenes de referencia</div>
+        </div>
+        <div class="card-body">
+          <div id="imagenes-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;min-height:20px;"></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="btn" type="button" onclick="document.getElementById('ot-imagenes-input').click()" id="btn-agregar-imagen">📎 Agregar imagen</button>
+            <span style="font-size:11px;color:var(--text3);" id="imagenes-contador">0 / 3</span>
+          </div>
+          <input type="file" id="ot-imagenes-input" accept="image/*" multiple style="display:none;">
+        </div>
+      </div>
+
       <!-- Acciones -->
       <div style="display:flex;gap:10px;">
         <button class="btn btn-lg" style="background:var(--surface2);" onclick="guardarOT()">💾 Guardar OT</button>
@@ -869,6 +885,8 @@ let currentSession = null;
 let itemCount = 0;
 let historial = [];
 let historialFiltrado = [];
+let imagenesArchivos = [];
+let imagenesOT = [];
 
 // Request helper — adjunta token de sesión si existe
 async function supaFetch(method, path, body) {
@@ -956,6 +974,7 @@ async function mostrarApp(email) {
   document.getElementById('ot-fecha-ingreso').value = hoy;
   document.getElementById('field-ot-num').style.display = 'none';
   agregarItem();
+  inicializarImagenes();
   actualizarPanel();
   cargarHistorial();
   document.getElementById('search-history').addEventListener('input', filtrarHistorial);
@@ -1147,6 +1166,65 @@ async function obtenerSiguienteNumOT() {
   return String(siguiente);
 }
 
+// ══════════════════════════════════════════
+// FUNCIONES DE IMÁGENES
+// ══════════════════════════════════════════
+function inicializarImagenes() {
+  document.getElementById('ot-imagenes-input').addEventListener('change', (e) => {
+    const files = [...e.target.files];
+    const disponible = 3 - (imagenesOT.length + imagenesArchivos.length);
+    if (disponible <= 0) { mostrarToast('Máximo 3 imágenes por OT'); return; }
+    const toAdd = files.slice(0, disponible);
+    for (const file of toAdd) { imagenesArchivos.push(file); }
+    renderImagenesPreview();
+    e.target.value = '';
+  });
+}
+
+function renderImagenesPreview() {
+  const container = document.getElementById('imagenes-preview');
+  const total = imagenesOT.length + imagenesArchivos.length;
+  document.getElementById('imagenes-contador').textContent = total + ' / 3';
+  document.getElementById('btn-agregar-imagen').style.display = total >= 3 ? 'none' : 'inline-block';
+  let html = '';
+  imagenesOT.forEach((url, i) => {
+    html += '<div style="position:relative;"><img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"><button onclick="eliminarImagenOT(' + i + ')" style="position:absolute;top:-6px;right:-6px;background:#B83232;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;">×</button></div>';
+  });
+  imagenesArchivos.forEach((file, i) => {
+    const url = URL.createObjectURL(file);
+    html += '<div style="position:relative;"><img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px dashed var(--accent);"><button onclick="eliminarImagenNueva(' + i + ')" style="position:absolute;top:-6px;right:-6px;background:#B83232;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;">×</button></div>';
+  });
+  container.innerHTML = html;
+}
+
+function eliminarImagenOT(i) { imagenesOT.splice(i, 1); renderImagenesPreview(); }
+function eliminarImagenNueva(i) { imagenesArchivos.splice(i, 1); renderImagenesPreview(); }
+
+async function subirImagenesStorage() {
+  const urls = [...imagenesOT];
+  for (const file of imagenesArchivos) {
+    const ext = file.name.split('.').pop();
+    const filename = 'ot_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    try {
+      const res = await fetch(SUPA_URL + '/storage/v1/object/ot-imagenes/' + filename, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + currentSession.access_token,
+          'Content-Type': file.type
+        },
+        body: file
+      });
+      if (res.ok) {
+        urls.push(SUPA_URL + '/storage/v1/object/public/ot-imagenes/' + filename);
+      }
+    } catch(e) { console.error('Error subiendo imagen:', e); }
+  }
+  imagenesArchivos = [];
+  imagenesOT = urls;
+  return urls;
+}
+
 async function guardarOT() {
   const datos = obtenerDatos();
   let num = datos.num;
@@ -1154,12 +1232,14 @@ async function guardarOT() {
   mostrarToast('Guardando...');
   try {
     if (!num) {
-      // New OT: auto-assign number
       num = await obtenerSiguienteNumOT();
       document.getElementById('ot-num').value = num;
       datos.num = num;
       actualizarPanel();
     }
+
+    // Subir imágenes
+    const urlsImagenes = await subirImagenesStorage();
 
     const existentes = await supaFetch('GET', `ordenes?num=eq.${encodeURIComponent(num)}&select=id`) || [];
 
@@ -1168,7 +1248,7 @@ async function guardarOT() {
         empresa: datos.empresa, contacto: datos.contacto,
         factura: datos.factura, despacho: datos.despacho,
         fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
-        items: datos.items, obs: datos.obs
+        items: datos.items, obs: datos.obs, imagenes: urlsImagenes
       });
       mostrarToast('OT actualizada en la nube ✓');
     } else {
@@ -1177,7 +1257,7 @@ async function guardarOT() {
         num: num, empresa: datos.empresa, contacto: datos.contacto,
         factura: datos.factura, despacho: datos.despacho,
         fecha_ingreso: datos.fechaIngreso, fecha_entrega: datos.fechaEntrega,
-        items: datos.items, obs: datos.obs, creado_por: email
+        items: datos.items, obs: datos.obs, creado_por: email, imagenes: urlsImagenes
       });
       mostrarToast(`OT N°${num} guardada en la nube ✓`);
     }
@@ -1211,6 +1291,9 @@ function cargarDesdeHistorial(id) {
     const term = last.querySelector('.item-term');
     if (term) term.value = it.term || '';
   });
+  imagenesOT = h.imagenes || [];
+  imagenesArchivos = [];
+  renderImagenesPreview();
   actualizarPanel();
   mostrarToast(`OT ${h.num} cargada ✓`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1239,6 +1322,9 @@ function limpiarFormulario() {
   document.getElementById('ot-fecha-ingreso').value = new Date().toISOString().split('T')[0];
   document.getElementById('items-container').innerHTML = '';
   itemCount = 0;
+  imagenesOT = [];
+  imagenesArchivos = [];
+  renderImagenesPreview();
   agregarItem();
   actualizarPanel();
 }
@@ -1329,7 +1415,9 @@ async function mostrarPrevia() {
         <tr><td>Impresión</td><td></td></tr>
         <tr><td>Producción</td><td></td></tr>
       </table>
-    </div>`;
+    </div>
+    ${(imagenesOT.length || imagenesArchivos.length) ? '<div style="margin-top:16px;border-top:1px solid #DDD;padding-top:12px;"><div style="font-size:11px;font-weight:600;color:#555;margin-bottom:8px;">IMÁGENES DE REFERENCIA</div>' + [...imagenesOT, ...imagenesArchivos.map(f => URL.createObjectURL(f))].map(url => '<img src="' + url + '" style="max-width:200px;max-height:150px;margin-right:8px;margin-bottom:8px;border:1px solid #CCC;border-radius:4px;">').join('') + '</div>' : ''}
+  `;
 
   document.getElementById('modal-overlay').classList.add('open');
 }
