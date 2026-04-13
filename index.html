@@ -758,6 +758,34 @@
   </div>
 </div>
 
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="modal-overlay" id="modal-cambiar-pwd" style="display:none;">
+  <div class="modal-box" style="width:90%;max-width:400px;">
+    <div class="modal-toolbar">
+      <div class="modal-toolbar-title">Cambiar contraseña</div>
+      <div class="modal-toolbar-actions">
+        <button class="btn-modal btn-modal-close" onclick="cerrarModalCambiarContrasena()">✕</button>
+      </div>
+    </div>
+    <div style="padding:20px;">
+      <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:var(--radius);">
+        <div style="font-size:12px;color:var(--text2);">Usuario:</div>
+        <div style="font-weight:600;" id="modal-pwd-email">—</div>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Nueva contraseña</label>
+        <input type="password" id="modal-pwd-nueva" placeholder="Mín. 6 caracteres" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="modal-pwd-confirmar" placeholder="Repite la contraseña" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+      </div>
+      <button class="btn btn-primary" onclick="confirmarCambiarContrasena()" style="width:100%;padding:10px;">Cambiar contraseña</button>
+      <div id="modal-pwd-status" style="margin-top:10px;color:green;font-size:12px;text-align:center;display:none;">✔ Contraseña actualizada</div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR OT -->
 <div class="modal-overlay" id="modal-edit-ot" style="display:none;">
   <div class="modal-box" style="width:95%;max-width:900px;">
@@ -1599,6 +1627,7 @@ async function cargarUsuarios() {
           <option value="secretaria" ${u.rol === 'secretaria' ? 'selected' : ''}>Secretaria</option>
           <option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Admin</option>
         </select>
+        <button onclick="abrirModalCambiarContrasena('${u.email}')" style="padding:4px 8px;background:#E8681A;color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">🔑</button>
         <button onclick="eliminarUsuario('${u.email}')" style="padding:4px 8px;background:var(--danger-light);color:var(--danger);border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;">🗑</button>
       </div>
     `).join('');
@@ -1672,6 +1701,42 @@ async function configurarNumeroOT() {
   await supaFetch('PATCH', 'configuracion?clave=eq.ultimo_num_ot', { valor: String(anterior) });
   document.getElementById('admin-num-status').textContent = `✓ El próximo N° de OT será ${siguiente}`;
   mostrarToast(`Numeración configurada: próxima OT será N°${siguiente}`);
+}
+
+function abrirModalCambiarContrasena(email) {
+  document.getElementById('modal-pwd-email').textContent = email;
+  document.getElementById('modal-pwd-nueva').value = '';
+  document.getElementById('modal-pwd-confirmar').value = '';
+  document.getElementById('modal-pwd-status').style.display = 'none';
+  document.getElementById('modal-cambiar-pwd').style.display = 'flex';
+  window.emailCambiarPwd = email;
+}
+
+function cerrarModalCambiarContrasena() {
+  document.getElementById('modal-cambiar-pwd').style.display = 'none';
+}
+
+async function confirmarCambiarContrasena() {
+  const nueva = document.getElementById('modal-pwd-nueva').value.trim();
+  const confirmar = document.getElementById('modal-pwd-confirmar').value.trim();
+  const email = window.emailCambiarPwd;
+
+  if (!nueva) { mostrarToast('Ingresa la nueva contraseña'); return; }
+  if (nueva.length < 6) { mostrarToast('La contraseña debe tener mín. 6 caracteres'); return; }
+  if (nueva !== confirmar) { mostrarToast('Las contraseñas no coinciden'); return; }
+
+  try {
+    const resultado = await supaFetch('POST', 'rpc/cambiar_contrasena_usuario', { email_usuario: email, nueva_contrasena: nueva });
+    const status = document.getElementById('modal-pwd-status');
+    status.style.display = 'block';
+    setTimeout(() => {
+      cerrarModalCambiarContrasena();
+      cargarUsuarios();
+      mostrarToast('Contraseña actualizada ✓');
+    }, 1500);
+  } catch(e) {
+    mostrarToast('Error: ' + e.message.slice(0, 60));
+  }
 }
 </script>
 </body>
